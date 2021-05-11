@@ -1,6 +1,12 @@
 import pandas as pd
 from object.Movie import Movie
 from object.Rating import Rating
+from object.User import User
+
+
+def get_user_from_id(users, id):
+    if users.get(id) is not None: return users[id]
+    return User(id, [])
 
 
 def read_input():
@@ -15,12 +21,16 @@ def read_input():
 
     # read rating input
     ratings_data = pd.read_csv("dataSource/ratings.csv")
-    ratings = []
+    users = {}
     for index in ratings_data.index:
         user_id = ratings_data.userId[index]
         movie_id = ratings_data.movieId[index]
         rating = ratings_data.rating[index]
         time_stamp = ratings_data.timestamp[index]
-        ratings.append(Rating(user_id, movie_id, rating, time_stamp))
+        rating = Rating(user_id, movie_id, rating, time_stamp)
 
-    return [movies, ratings]
+        user = get_user_from_id(users, user_id)
+        user.ratings.append(rating)
+        users[user_id] = user
+
+    return [movies, users]
