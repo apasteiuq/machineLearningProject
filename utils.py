@@ -1,5 +1,9 @@
 import numpy as np
+import math
+import random
 import pandas as pd
+
+import constant
 from object.Movie import Movie
 from object.Rating import Rating
 from object.User import User
@@ -7,7 +11,7 @@ from object.User import User
 
 def get_user_from_id(users, id):
     if users.get(id) is not None: return users[id]
-    return User(id, {})
+    return User(id, [])
 
 
 def read_input():
@@ -50,3 +54,50 @@ def nDCG_cal(user, movies_recommended):
     iDNG = np.sum(i_dng_list)
 
     return dNG / iDNG
+
+
+def read_rating_input():
+    r_cols = ['userId', 'movieId', 'rating', 'timestamp']
+
+    ratings_base = pd.read_csv('dataSource/ratings.csv', sep=',', names=r_cols, encoding='latin-1')
+
+    input_matrix = ratings_base.to_numpy()
+    # print(input_matrix)
+
+    users = {}
+    for row in input_matrix:
+        user_id = row[0]
+        user = get_user_from_id(users, user_id)
+        user.ratings.append(row)
+        users[user_id] = user
+
+    data_train = []
+    data_test = []
+    random.seed(0)
+    for user_id in users:
+        rating_count = len(users[user_id].ratings)
+        user_rating = users[user_id].ratings.copy()
+        random.shuffle(user_rating)
+        for i in range(rating_count):
+            if i < math.floor(rating_count * 0.8):
+                data_train.append(user_rating[i])
+            else:
+                data_test.append(user_rating[i])
+
+    # print(data_train)
+    return data_train, data_test
+
+
+def normalize(Y):
+    output = Y.copy()
+    users = output[:, 0]
+    bias = np.zeros((constant.total_user_count,))
+    for i in range(constant.total_user_count):
+        ids = np.where(users == i)[0].astype(np.int32)
+        ratings = output[ids, 2]
+        mean = np.mean(ratings)
+        if np.isnan(mean):
+            mean = 0
+        bias[i] = mean
+        output[ids, 2] = ratings - bias[i]
+    return output, bias
